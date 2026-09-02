@@ -1,0 +1,9 @@
+# Eclipse build output (compiled inside WebContent, regenerated on build)
+WebContent/WEB-INF/classes/
+
+# OS cruft
+.DS_Store
+
+# Server working directories if ever created inside the project
+build/
+work/
