@@ -33,6 +33,35 @@ public class ViewAppointmentServlet extends HttpServlet {
             }
             request.setAttribute("searchedNumber", appointmentNumber);
         }
+
+        // "Show all appointments" -- a practical front-desk option next to
+        // the single-number search, backed by IAppointmentDao.findAll(),
+        // which already existed for the Reports feature but had no UI of
+        // its own until now.
+        if ("1".equals(request.getParameter("showAll"))) {
+            request.setAttribute("allAppointments", appointmentService.findAll());
+        }
+
         request.getRequestDispatcher("/viewAppointment.jsp").forward(request, response);
+    }
+
+    /** Front-desk "mark completed / cancel" action -- the status column already existed but had no UI. */
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        if (!SessionUtil.isLoggedIn(request)) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
+            return;
+        }
+
+        String appointmentNumber = request.getParameter("appointmentNumber");
+        String newStatus = request.getParameter("newStatus");
+        if (appointmentNumber != null && newStatus != null
+                && (newStatus.equals("COMPLETED") || newStatus.equals("CANCELLED") || newStatus.equals("SCHEDULED"))) {
+            appointmentService.updateStatus(appointmentNumber, newStatus);
+        }
+
+        response.sendRedirect(request.getContextPath() + "/viewAppointment?appointmentNumber="
+                + java.net.URLEncoder.encode(appointmentNumber, "UTF-8"));
     }
 }

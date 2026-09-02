@@ -118,6 +118,44 @@ public class DatabaseAppointmentDao implements IAppointmentDao {
                 "WHERE a.appointment_date = ? ORDER BY a.appointment_time", date);
     }
 
+    @Override
+    public List<Appointment> findByPatientId(int patientId) {
+        List<Appointment> results = new ArrayList<>();
+        String sql = "SELECT a.appointment_id, a.appointment_number, a.dentist_name, a.appointment_date, " +
+                     "a.appointment_time, a.status, a.registered_by, " +
+                     "p.patient_id, p.name AS patient_name, p.address, p.contact_number, p.date_of_birth, " +
+                     "t.treatment_type_id, t.name AS treatment_name, t.base_cost " +
+                     "FROM appointment a " +
+                     "JOIN patient p ON p.patient_id = a.patient_id " +
+                     "JOIN treatment_type t ON t.treatment_type_id = a.treatment_type_id " +
+                     "WHERE a.patient_id = ? ORDER BY a.appointment_date DESC, a.appointment_time DESC";
+        try (Connection conn = DatabaseConnectionManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, patientId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error listing patient history", e);
+        }
+        return results;
+    }
+
+    @Override
+    public boolean updateStatus(String appointmentNumber, String newStatus) {
+        String sql = "UPDATE appointment SET status = ? WHERE appointment_number = ?";
+        try (Connection conn = DatabaseConnectionManager.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newStatus);
+            ps.setString(2, appointmentNumber);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Error updating appointment status", e);
+        }
+    }
+
     private List<Appointment> runListQuery(String sql, LocalDate dateParam) {
         List<Appointment> results = new ArrayList<>();
         try (Connection conn = DatabaseConnectionManager.getInstance().getConnection();

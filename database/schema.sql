@@ -33,12 +33,21 @@ CREATE TABLE treatment_type (
 
 -- ---------------------------------------------------------------------
 -- patient : backs the Patient class (Domain Model)
+-- patient_id stays the technical primary key (the standard, robust
+-- choice for a foreign-key target -- it never changes even if a client
+-- gets a new phone number), but contact_number is the patient's
+-- practical/business identity: it is UNIQUE here so the database itself
+-- guarantees one record per client, matching how
+-- DatabaseAppointmentDao.findOrCreatePatient() already looks a patient
+-- up by contact_number before creating a new row, so the same client
+-- registering for a second visit reuses their existing record and
+-- visit history instead of creating a duplicate.
 -- ---------------------------------------------------------------------
 CREATE TABLE patient (
     patient_id     INT AUTO_INCREMENT PRIMARY KEY,
     name           VARCHAR(100) NOT NULL,
     address        VARCHAR(200) NOT NULL,
-    contact_number VARCHAR(20)  NOT NULL,
+    contact_number VARCHAR(20)  NOT NULL UNIQUE,
     date_of_birth  DATE         NULL
 );
 

@@ -3,6 +3,7 @@ package dental.servlet;
 import dental.model.Patient;
 import dental.model.TreatmentType;
 import dental.service.AppointmentService;
+import dental.service.PatientService;
 import dental.service.TreatmentTypeService;
 import dental.service.ValidationException;
 import dental.util.SessionUtil;
@@ -21,6 +22,7 @@ public class RegisterAppointmentServlet extends HttpServlet {
 
     private final AppointmentService appointmentService = new AppointmentService();
     private final TreatmentTypeService treatmentTypeService = new TreatmentTypeService();
+    private final PatientService patientService = new PatientService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -30,6 +32,24 @@ public class RegisterAppointmentServlet extends HttpServlet {
             return;
         }
         request.setAttribute("treatmentTypes", treatmentTypeService.findAll());
+
+        // Returning-patient shortcut: coming from the Patients page with
+        // ?contactNumber=... pre-fills the patient fields from their
+        // existing record (looked up by contact number, the same key
+        // AppointmentService/DatabaseAppointmentDao already dedupes new
+        // registrations against) so the receptionist doesn't have to
+        // re-type a client's details on every visit.
+        String prefillContact = request.getParameter("contactNumber");
+        if (prefillContact != null && !prefillContact.isBlank()) {
+            Patient existing = patientService.findByContactNumber(prefillContact.trim());
+            if (existing != null) {
+                request.setAttribute("patientName", existing.getName());
+                request.setAttribute("address", existing.getAddress());
+                request.setAttribute("contactNumber", existing.getContactNumber());
+                request.setAttribute("returningPatient", Boolean.TRUE);
+            }
+        }
+
         request.getRequestDispatcher("/registerAppointment.jsp").forward(request, response);
     }
 

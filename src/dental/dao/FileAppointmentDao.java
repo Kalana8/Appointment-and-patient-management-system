@@ -124,4 +124,49 @@ public class FileAppointmentDao implements IAppointmentDao {
         }
         return results;
     }
+
+    @Override
+    public List<Appointment> findByPatientId(int patientId) {
+        // The flat file format does not persist a patient_id (only the
+        // denormalised name/address/contact per line), so patient identity
+        // can't be matched here the way the database mode does. File mode
+        // is kept purely as an alternative DAO-pattern implementation for
+        // the "Register"/"Search by number" use cases; the Patient
+        // directory / client-history feature requires database mode.
+        return new ArrayList<>();
+    }
+
+    @Override
+    public boolean updateStatus(String appointmentNumber, String newStatus) {
+        List<String> lines = new ArrayList<>();
+        boolean updated = false;
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                String[] p = line.split("\\|");
+                if (p[0].equals(appointmentNumber)) {
+                    p[9] = newStatus;
+                    line = String.join("|", p);
+                    updated = true;
+                }
+                lines.add(line);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading appointment data file", e);
+        }
+        if (updated) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, false))) {
+                for (String line : lines) {
+                    writer.write(line);
+                    writer.newLine();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Error updating appointment status in file", e);
+            }
+        }
+        return updated;
+    }
 }

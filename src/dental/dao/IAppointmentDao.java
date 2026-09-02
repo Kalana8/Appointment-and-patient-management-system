@@ -14,4 +14,8 @@ public interface IAppointmentDao {
     String save(Appointment appointment);
     List<Appointment> findAll();
     List<Appointment> findByDate(LocalDate date);
+    /** All visits for one patient, most recent first -- backs the client-history feature. */
+    List<Appointment> findByPatientId(int patientId);
+    /** Moves an appointment to SCHEDULED / COMPLETED / CANCELLED. Returns true if a row was updated. */
+    boolean updateStatus(String appointmentNumber, String newStatus);
 }

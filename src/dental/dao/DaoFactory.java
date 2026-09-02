@@ -51,4 +51,13 @@ public final class DaoFactory {
         }
         return new DatabaseAppointmentDao();
     }
+
+    /**
+     * The Patient directory / client-history feature is database-only
+     * (see the note on FileAppointmentDao.findByPatientId) so, unlike the
+     * two factory methods above, this one does not branch on MODE_FILE.
+     */
+    public static IPatientDao createPatientDao() {
+        return new DatabasePatientDao();
+    }
 }

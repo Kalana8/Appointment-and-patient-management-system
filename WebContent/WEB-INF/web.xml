@@ -67,6 +67,16 @@
         <url-pattern>/viewAppointment</url-pattern>
     </servlet-mapping>
 
+    <!-- ===================== Patient directory / client history ===================== -->
+    <servlet>
+        <servlet-name>PatientServlet</servlet-name>
+        <servlet-class>dental.servlet.PatientServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>PatientServlet</servlet-name>
+        <url-pattern>/patients</url-pattern>
+    </servlet-mapping>
+
     <!-- ===================== Billing ===================== -->
     <servlet>
         <servlet-name>GenerateBillServlet</servlet-name>

@@ -109,6 +109,16 @@ public class AppointmentService {
         return appointmentDao.findAll();
     }
 
+    /** Full visit history for one patient -- backs the client-history feature. */
+    public List<Appointment> findByPatientId(int patientId) {
+        return appointmentDao.findByPatientId(patientId);
+    }
+
+    /** Realises the front-desk "mark completed / cancel" workflow the status column already supported. */
+    public boolean updateStatus(String appointmentNumber, String newStatus) {
+        return appointmentDao.updateStatus(appointmentNumber, newStatus);
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
