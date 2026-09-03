@@ -5,12 +5,12 @@ import dental.dao.IAppointmentDao;
 import dental.model.Appointment;
 import dental.model.Patient;
 import dental.model.TreatmentType;
+import dental.util.ContactNumberValidator;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Service Layer class (Task A, Figure 2). Realises the "Register New
@@ -19,9 +19,6 @@ import java.util.regex.Pattern;
  * «include» relationship from the Use Case Diagram (Figure 1).
  */
 public class AppointmentService {
-
-    // Sri Lankan mobile numbers: 07XXXXXXXX (10 digits, starts with 07)
-    private static final Pattern PHONE_PATTERN = Pattern.compile("^07\\d{8}$");
 
     private final IAppointmentDao appointmentDao;
 
@@ -72,7 +69,7 @@ public class AppointmentService {
         }
         if (patient == null || isBlank(patient.getContactNumber())) {
             errors.add("Contact number is required.");
-        } else if (!PHONE_PATTERN.matcher(patient.getContactNumber().trim()).matches()) {
+        } else if (!ContactNumberValidator.isValid(patient.getContactNumber().trim())) {
             errors.add("Contact number must be a valid Sri Lankan mobile number, e.g. 0771234567.");
         }
         if (isBlank(dentistName)) {

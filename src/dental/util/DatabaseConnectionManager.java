@@ -48,7 +48,19 @@ public final class DatabaseConnectionManager {
         // RSA public key with the client; MariaDB Connector/J does not
         // request it automatically, which otherwise fails every connection
         // with "RSA public key is not available client side".
-        this.jdbcUrl = "jdbc:mysql://localhost:3306/sunrise_dental_clinic?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+        //
+        // Task C testability note: the schema name is read from the
+        // "dental.db.name" system property, defaulting to the production
+        // database name so nothing changes for the deployed web app. The
+        // JUnit suite (test/dental/**) passes -Ddental.db.name=
+        // sunrise_dental_clinic_test on the command line (see
+        // run-tests.sh) so integration tests run against a dedicated,
+        // disposable schema instead of live clinic data - a small,
+        // backward-compatible addition made specifically to support Task C,
+        // not a change to Task B's runtime behaviour.
+        String dbName = System.getProperty("dental.db.name", "sunrise_dental_clinic");
+        this.jdbcUrl = "jdbc:mysql://localhost:3306/" + dbName
+                + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
         this.username = "dental_app";
         this.password = "DentalApp#2026";
         try {
