@@ -1,4 +1,4 @@
-# Sunrise Dental Clinic - Task B (Interactive System Implementation)
+# Sunrise Dental Clinic - Task B, C & D (Implementation, Testing & Version Control)
 
 CIS6003 Advanced Programming coursework, Task B. A Java web application built
 with Servlets, JSP, JDBC and MySQL, following the exact toolchain and MVC
@@ -152,4 +152,67 @@ SunriseDentalClinic/
   database/
     schema.sql       Tables, trigger, function, stored procedure, views
     sample_data.sql  Demo staff, treatment types, patients, appointments
+  test/dental/        JUnit 5 test classes (Task C), mirrors src/dental/
+  lib-test/           JUnit Platform Console Standalone jar
+  run-tests.sh        Test automation: compile + run the full suite
+  .github/workflows/  build-and-test.yml (Task D: CI on every push/PR)
 ```
+
+## 8. Testing (Task C)
+
+The full test plan, rationale and results are documented in
+`Sunrise_Dental_Clinic_TaskC_TestPlan.docx`. In short: 8 JUnit 5 test
+classes (`test/dental/**`), 50 test cases, run with a single command:
+
+```
+./run-tests.sh
+```
+
+This compiles `src/` and `test/` together and runs the whole suite against
+a dedicated `sunrise_dental_clinic_test` database (never the live
+`sunrise_dental_clinic` schema — see `DatabaseConnectionManager`'s
+`dental.db.name` system property), auto-discovering every `@Test` via the
+JUnit Platform Console Standalone launcher (`lib-test/`).
+
+## 9. Version Control and Continuous Integration (Task D)
+
+**Repository.** This repository is public on GitHub at
+https://github.com/Kalana8/Appointment-and-patient-management-system and
+tracks the project's history as a normal sequence of commits on `main`,
+from the initial Eclipse project scaffolding through to the JUnit test
+suite added for Task C.
+
+**Versioning.** Three annotated tags mark the project's major milestones,
+so a specific historical state can always be checked out or compared by
+name rather than by commit hash:
+
+| Tag | What it marks |
+|---|---|
+| `v1.0-task-b-initial` | Initial Task B implementation: servlets, JSP, DAOs, service layer, schema, README |
+| `v2.0-task-b-revision` | Patient directory, appointment status management, dashboard redesign |
+| `v3.0-task-c-testing` | Task C: the JUnit 5 suite, the TDD-driven `ContactNumberValidator` refactor, and `run-tests.sh` |
+
+```
+git tag -n99          # list all tags with their full messages
+git checkout v1.0-task-b-initial   # inspect any earlier milestone
+```
+
+**Continuous Integration.** `.github/workflows/build-and-test.yml` runs on
+every push and pull request to `main`. It provisions a real, disposable
+MySQL 8.0 service container, builds the isolated `sunrise_dental_clinic_test`
+schema from `database/schema.sql`/`sample_data.sql` (the same technique
+`run-tests.sh` uses locally), compiles the whole project, and runs the
+complete 50-test JUnit suite — publishing a JUnit XML report as a workflow
+artifact on every run. The workflow's pass/fail status is visible on the
+repository's **Actions** tab and next to every commit and pull request, so
+a broken build or a failing test is visible immediately rather than only
+being discovered locally.
+
+**Documentation.** Task A (UML design), Task B (implementation), Task C
+(test plan) and Task D (this section) are each documented in their own
+report, referencing this repository throughout:
+
+- `Sunrise_Dental_Clinic_TaskA_UML_Design.docx`
+- `Sunrise_Dental_Clinic_TaskA_TaskB_Report.docx`
+- `Sunrise_Dental_Clinic_TaskC_TestPlan.docx`
+- `Sunrise_Dental_Clinic_TaskD_VersionControl.docx`

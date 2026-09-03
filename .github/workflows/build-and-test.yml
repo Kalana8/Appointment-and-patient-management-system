@@ -1,0 +1,87 @@
+name: Build and Test
+
+# Task D (CI/CD workflow demonstration): compiles the whole project and
+# runs the full Task C JUnit 5 suite (50 tests) against a real, disposable
+# MySQL service container on every push/PR to main -- the same compile +
+# test steps run-tests.sh performs locally (see Task C report, section 7),
+# reproduced here so they run automatically and their result (pass/fail)
+# is visible on GitHub without anyone needing local Java/MySQL set up.
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+
+      - name: Provision the isolated test database
+        # Same isolation technique documented in the Task C report, section
+        # 3.2: a dedicated sunrise_dental_clinic_test schema, never the
+        # production sunrise_dental_clinic name, built from the project's
+        # own schema.sql / sample_data.sql with the database name
+        # substituted, exactly like the local test setup.
+        run: |
+          sed 's/sunrise_dental_clinic/sunrise_dental_clinic_test/g' database/schema.sql > /tmp/schema_test.sql
+          sed 's/sunrise_dental_clinic/sunrise_dental_clinic_test/g' database/sample_data.sql > /tmp/sample_data_test.sql
+          mysql -h127.0.0.1 -uroot -proot < /tmp/schema_test.sql
+          mysql -h127.0.0.1 -uroot -proot < /tmp/sample_data_test.sql
+          mysql -h127.0.0.1 -uroot -proot -e "CREATE USER IF NOT EXISTS 'dental_app'@'%' IDENTIFIED BY 'DentalApp#2026';"
+          mysql -h127.0.0.1 -uroot -proot -e "CREATE USER IF NOT EXISTS 'dental_app'@'localhost' IDENTIFIED BY 'DentalApp#2026';"
+          mysql -h127.0.0.1 -uroot -proot -e "GRANT ALL PRIVILEGES ON sunrise_dental_clinic_test.* TO 'dental_app'@'%'; GRANT ALL PRIVILEGES ON sunrise_dental_clinic_test.* TO 'dental_app'@'localhost'; FLUSH PRIVILEGES;"
+
+      - name: Download Jakarta Servlet API (compile-only dependency)
+        # Not committed to the repo (it ships inside Tomcat 10 locally, per
+        # the README) -- GitHub-hosted runners have full internet access,
+        # unlike the restricted development sandbox this project was built
+        # in, so it is fetched directly from Maven Central here.
+        run: curl -sSL -o /tmp/jakarta.servlet-api.jar https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/6.0.0/jakarta.servlet-api-6.0.0.jar
+
+      - name: Compile (src/ + test/)
+        run: |
+          mkdir -p test-classes
+          javac -d test-classes \
+            -cp "lib-test/junit-platform-console-standalone-1.9.1.jar:WebContent/WEB-INF/lib/mariadb-java-client.jar:/tmp/jakarta.servlet-api.jar" \
+            $(find src -name "*.java") $(find test -name "*.java")
+
+      - name: Run the JUnit 5 test suite (50 tests)
+        run: |
+          java -Ddental.db.name=sunrise_dental_clinic_test \
+            -jar lib-test/junit-platform-console-standalone-1.9.1.jar \
+            --class-path "test-classes:WebContent/WEB-INF/lib/mariadb-java-client.jar:/tmp/jakarta.servlet-api.jar" \
+            --scan-classpath test-classes \
+            --details=tree \
+            --reports-dir=build/test-results
+
+      - name: Upload JUnit XML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-test-report
+          path: build/test-results
