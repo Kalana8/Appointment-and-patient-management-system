@@ -71,17 +71,24 @@ jobs:
             $(find src -name "*.java") $(find test -name "*.java")
 
       - name: Run the JUnit 5 test suite (50 tests)
+        # --reports-dir is deliberately NOT used: this console-standalone
+        # build fails to instantiate its XML reporting listener
+        # (OpenTestReportGeneratingListener), which would abort the whole
+        # run before a single test executes. The full --details=tree
+        # console output is captured to a plain log file instead, which
+        # needs no extra listener and is uploaded as the build artifact.
         run: |
+          set -o pipefail
           java -Ddental.db.name=sunrise_dental_clinic_test \
             -jar lib-test/junit-platform-console-standalone-1.9.1.jar \
             --class-path "test-classes:WebContent/WEB-INF/lib/mariadb-java-client.jar:/tmp/jakarta.servlet-api.jar" \
             --scan-classpath test-classes \
             --details=tree \
-            --reports-dir=build/test-results
+            2>&1 | tee junit-console-output.log
 
-      - name: Upload JUnit XML report
+      - name: Upload JUnit console output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: junit-test-report
-          path: build/test-results
+          name: junit-console-output
+          path: junit-console-output.log
