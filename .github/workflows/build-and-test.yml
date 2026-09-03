@@ -63,24 +63,39 @@ jobs:
         # in, so it is fetched directly from Maven Central here.
         run: curl -sSL -o /tmp/jakarta.servlet-api.jar https://repo1.maven.org/maven2/jakarta/servlet/jakarta.servlet-api/6.0.0/jakarta.servlet-api-6.0.0.jar
 
+      - name: Download a verified JUnit Platform Console Standalone jar
+        # Run #2 failed with "java.util.ServiceConfigurationError: Provider
+        # org.junit.platform.reporting.open.xml.OpenTestReportGeneratingListener
+        # could not be instantiated" -- thrown by JUnit's own ServiceLoader
+        # discovery, unrelated to --reports-dir (already removed in the
+        # previous fix). That class belongs to JUnit's newer Open Test
+        # Reporting feature, which the genuine 1.9.1 release predates, so
+        # the repo's lib-test/ jar (originally obtained via apt in a
+        # network-restricted sandbox -- see Task C report, section 8.3 for
+        # why Maven Central was unreachable there) is suspected to not be a
+        # byte-for-byte match for the official 1.9.1 build. GitHub-hosted
+        # runners have unrestricted internet, so CI downloads a verified
+        # copy directly from Maven Central instead of trusting the
+        # committed jar, isolating this job from that packaging risk
+        # without changing lib-test/ (which run-tests.sh and the Task C
+        # report's screenshots still rely on locally).
+        run: curl -sSL -o /tmp/junit-console-standalone.jar https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.9.1/junit-platform-console-standalone-1.9.1.jar
+
       - name: Compile (src/ + test/)
         run: |
           mkdir -p test-classes
           javac -d test-classes \
-            -cp "lib-test/junit-platform-console-standalone-1.9.1.jar:WebContent/WEB-INF/lib/mariadb-java-client.jar:/tmp/jakarta.servlet-api.jar" \
+            -cp "/tmp/junit-console-standalone.jar:WebContent/WEB-INF/lib/mariadb-java-client.jar:/tmp/jakarta.servlet-api.jar" \
             $(find src -name "*.java") $(find test -name "*.java")
 
       - name: Run the JUnit 5 test suite (50 tests)
-        # --reports-dir is deliberately NOT used: this console-standalone
-        # build fails to instantiate its XML reporting listener
-        # (OpenTestReportGeneratingListener), which would abort the whole
-        # run before a single test executes. The full --details=tree
-        # console output is captured to a plain log file instead, which
-        # needs no extra listener and is uploaded as the build artifact.
+        # --reports-dir is deliberately NOT used (see the previous fix
+        # commit); the full --details=tree console output is captured to a
+        # plain log file instead and uploaded as the build artifact.
         run: |
           set -o pipefail
           java -Ddental.db.name=sunrise_dental_clinic_test \
-            -jar lib-test/junit-platform-console-standalone-1.9.1.jar \
+            -jar /tmp/junit-console-standalone.jar \
             --class-path "test-classes:WebContent/WEB-INF/lib/mariadb-java-client.jar:/tmp/jakarta.servlet-api.jar" \
             --scan-classpath test-classes \
             --details=tree \
